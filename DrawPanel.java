@@ -7,16 +7,35 @@ public class DrawPanel extends JPanel implements MouseListener {
 
     BrickLayout layout;
 
+    // NEW: time tracking fields
+    private long lastDropTime;
+    private long lastTickTime;
+    private static final long DROP_INTERVAL = 1000; // ms between new bricks
+    private static final long TICK_INTERVAL = 100;  // ms between fall steps
+
     public DrawPanel() {
         this.addMouseListener(this);
         layout = new BrickLayout("src/input_file");
-
+        lastDropTime = System.currentTimeMillis(); // NEW
+        lastTickTime = System.currentTimeMillis(); // NEW
     }
 
 
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        int[][] grid = layout.getGrid();
+
+        // NEW: advance the simulation based on elapsed time
+        long now = System.currentTimeMillis();
+        if (now - lastDropTime >= DROP_INTERVAL) {
+            layout.startFallingBrick();
+            lastDropTime = now;
+        }
+        if (now - lastTickTime >= TICK_INTERVAL) {
+            layout.tick();
+            lastTickTime = now;
+        }
+
+        int[][] grid = layout.getDisplayGrid(); // NEW: use display grid
         int x = 10;
         int y = 10;
         for (int r = 0; r < 30; r++) {
@@ -27,6 +46,13 @@ public class DrawPanel extends JPanel implements MouseListener {
 
                 if (grid[r][c] == 1) {
                     g2.setColor(Color.RED);
+                    g2.fillRect(x, y, 20, 20);
+                    g2.setColor(Color.BLACK);
+                }
+
+                // NEW: if falling brick (value 2), color it orange
+                if (grid[r][c] == 2) {
+                    g2.setColor(Color.ORANGE);
                     g2.fillRect(x, y, 20, 20);
                     g2.setColor(Color.BLACK);
                 }

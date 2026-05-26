@@ -9,6 +9,9 @@ public class BrickLayout {
     private int[][] grid;
     private int nextBrick; // index of the next brick to drop
 
+    // NEW: tracks currently falling bricks as {currentRow, start, end}
+    private ArrayList<int[]> fallingBricks;
+
     public BrickLayout(String inputFile) {
         ArrayList<String> fileData = getFileData(inputFile);
         bricks = new ArrayList<Brick>(); // fixed: was re-declaring a local variable
@@ -21,6 +24,7 @@ public class BrickLayout {
         }
         grid = new int[30][40];
         nextBrick = 0; // start at the first brick
+        fallingBricks = new ArrayList<int[]>(); // NEW
     }
 
     public int[][] getGrid() {
@@ -66,6 +70,68 @@ public class BrickLayout {
 
         // Advance to the next brick for the following click
         nextBrick++;
+    }
+
+    // NEW: introduces a new brick at the top as a falling brick
+    public void startFallingBrick() {
+        if (nextBrick >= bricks.size()) {
+            return;
+        }
+        Brick b = bricks.get(nextBrick);
+        fallingBricks.add(new int[]{0, b.getStart(), b.getEnd()});
+        nextBrick++;
+    }
+
+    // NEW: moves all falling bricks down one row; lands them if blocked
+    public void tick() {
+        ArrayList<int[]> toRemove = new ArrayList<int[]>();
+        for (int[] fb : fallingBricks) {
+            int row   = fb[0];
+            int start = fb[1];
+            int end   = fb[2];
+
+            boolean canFall = false;
+            if (row + 1 < 30) {
+                canFall = true;
+                for (int c = start; c <= end; c++) {
+                    if (grid[row + 1][c] == 1) {
+                        canFall = false;
+                        break;
+                    }
+                }
+            }
+
+            if (canFall) {
+                fb[0]++;
+            } else {
+                for (int c = start; c <= end; c++) {
+                    grid[row][c] = 1;
+                }
+                toRemove.add(fb);
+            }
+        }
+        fallingBricks.removeAll(toRemove);
+    }
+
+    // NEW: returns grid overlaid with falling bricks (value 2) for drawing
+    public int[][] getDisplayGrid() {
+        int[][] display = new int[30][40];
+        for (int r = 0; r < 30; r++) {
+            for (int c = 0; c < 40; c++) {
+                display[r][c] = grid[r][c];
+            }
+        }
+        for (int[] fb : fallingBricks) {
+            int row   = fb[0];
+            int start = fb[1];
+            int end   = fb[2];
+            if (row >= 0 && row < 30) {
+                for (int c = start; c <= end; c++) {
+                    display[row][c] = 2;
+                }
+            }
+        }
+        return display;
     }
 
     public ArrayList<String> getFileData(String fileName) {
